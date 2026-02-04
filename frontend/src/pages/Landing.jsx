@@ -7,9 +7,9 @@ const Landing = () => {
         <div className="flex flex-col md:flex-row items-center justify-center gap-12 min-h-[80vh] py-12">
             {/* Left Side: Hero Text */}
             <div className="flex-1 text-center md:text-left space-y-6 max-w-2xl">
-                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 leading-tight">
+                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-text-main leading-tight">
                     Build faster for <br />
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent">
                         Global Hacks
                     </span>
                 </h1>
@@ -18,14 +18,14 @@ const Landing = () => {
                     Authentication, API routes, and UI pre-configured.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start pt-4">
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600">
+                    <div className="flex items-center space-x-2 text-sm text-text-muted">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success/20 text-success">
                             ✓
                         </span>
                         <span>React + Vite</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600">
+                    <div className="flex items-center space-x-2 text-sm text-text-muted">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary">
                             ✓
                         </span>
                         <span>Supabase Auth</span>

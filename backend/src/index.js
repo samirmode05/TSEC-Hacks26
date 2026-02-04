@@ -1,9 +1,12 @@
 
+
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
 const exampleRoutes = require('./routes/example.routes');
+const adminRoutes = require('./routes/admin/index.routes');
+const citizenRoutes = require('./routes/citizen/index.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,11 +17,10 @@ app.use(express.json());
 
 // Routes
 app.use('/api', exampleRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/citizen', citizenRoutes);
 
 // Health Check
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', timestamp: new Date() });
-});
 
 // Start Server
 app.listen(PORT, () => {

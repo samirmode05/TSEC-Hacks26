@@ -10,19 +10,19 @@ const AdminDashboard = () => {
     ];
 
     const getRiskColor = (risk) => {
-        if (risk >= 80) return 'bg-red-100 text-red-800';
-        if (risk >= 50) return 'bg-yellow-100 text-yellow-800';
-        return 'bg-green-100 text-green-800';
+        if (risk >= 80) return 'bg-danger/20 text-danger';
+        if (risk >= 50) return 'bg-accent/20 text-accent';
+        return 'bg-success/20 text-success';
     };
 
     return (
         <div className="space-y-6">
-            <header className="bg-white shadow rounded-lg p-6">
-                <h1 className="text-3xl font-bold text-gray-900">City Command Center</h1>
-                <p className="mt-2 text-sm text-gray-600">Overview of reported infrastructure issues</p>
+            <header className="bg-surface shadow rounded-lg p-6">
+                <h1 className="text-3xl font-bold text-text-main">City Command Center</h1>
+                <p className="mt-2 text-sm text-text-muted">Overview of reported infrastructure issues</p>
             </header>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-surface shadow rounded-lg overflow-hidden">
                 <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
                     <h3 className="text-lg leading-6 font-medium text-gray-900">
                         Incoming Reports

@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+@theme {
+    /* 
+   * PROFESSIONAL CITY INFRASTRUCTURE THEME
+   * Clean, Trustworthy, Modern Blue & White
+   * ------------------------------------------------------------------
+   */
+
+    /* Primary: Trustworthy Corporate Blue */
+    --color-primary: #2563ea;
+    /* Royal Blue */
+    --color-primary-hover: #1d4ed8;
+    /* Darker Blue */
+
+    /* Secondary: Subtle Slate Blue for gradients/accents */
+    --color-secondary: #64748b;
+    /* Slate-500 */
+
+    /* Accent: Attention grabbing but professional */
+    --color-accent: #f59e0b;
+    /* Amber */
+
+    /* Functional Colors */
+    --color-success: #10b981;
+    /* Emerald */
+    --color-danger: #ef4444;
+    /* Red */
+
+    /* Backgrounds: Clean and High Contrast */
+    --color-background: #f8fafc;
+    /* Slate-50 *Very light gray/blue tint* */
+    --color-surface: #ffffff;
+    /* Pure White */
+
+    /* Text: High Legibility */
+    --color-text-main: #0f172a;
+    /* Slate-900 *Almost Black* */
+    --color-text-muted: #64748b;
+    /* Slate-500 */
+}
+
+/* Base Styles */
+body {
+    background-color: var(--color-background);
+    color: var(--color-text-main);
+}

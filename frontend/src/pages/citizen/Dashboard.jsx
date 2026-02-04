@@ -1,16 +1,16 @@
 
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthProvider";
+import api from "../../services/api"; // Import the new axios instance
+import { useAuth } from "../../context/AuthProvider";
 
 const Profile = () => {
     const { user } = useAuth();
     const [data, setData] = useState(null);
 
     useEffect(() => {
-        // Example fetch to backend
-        fetch('http://localhost:5000/api/example')
-            .then(res => res.json())
-            .then(setData)
+        // Use centralized api instance
+        api.get('/example')
+            .then(res => setData(res.data))
             .catch(console.error);
     }, []);
 
@@ -18,34 +18,34 @@ const Profile = () => {
     return (
         <div className="space-y-6">
             {/* Header Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div className="bg-surface rounded-2xl shadow-sm border border-secondary/20 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="flex-shrink-0">
                     {user?.user_metadata?.avatar_url ? (
                         <img
                             src={user.user_metadata.avatar_url}
                             alt="Profile"
-                            className="w-24 h-24 rounded-full border-4 border-indigo-50 shadow-md"
+                            className="w-24 h-24 rounded-full border-4 border-primary/10 shadow-md"
                         />
                     ) : (
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-md">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-3xl font-bold shadow-md">
                             {user?.email?.charAt(0).toUpperCase()}
                         </div>
                     )}
                 </div>
 
                 <div className="text-center md:text-left flex-1">
-                    <h2 className="text-3xl font-bold text-gray-900">
+                    <h2 className="text-3xl font-bold text-text-main">
                         {user?.user_metadata?.full_name || 'Hackathon Participant'}
                     </h2>
                     <p className="text-gray-500 font-medium">{user?.email}</p>
                     <div className="mt-3 flex flex-wrap justify-center md:justify-start gap-2">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-success/20 text-success">
                             Active Session
                         </span>
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary">
                             Supabase Auth
                         </span>
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary">
                             Start Building
                         </span>
                     </div>
@@ -55,14 +55,14 @@ const Profile = () => {
             {/* Content Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Backend Data Card */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-surface rounded-2xl shadow-sm border border-secondary/10 p-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Backend Connection</h3>
-                        <div className={`w-3 h-3 rounded-full ${data ? 'bg-green-500' : 'bg-yellow-400 animate-pulse'}`}></div>
+                        <h3 className="text-lg font-semibold text-text-main">Backend Connection</h3>
+                        <div className={`w-3 h-3 rounded-full ${data ? 'bg-success' : 'bg-accent animate-pulse'}`}></div>
                     </div>
 
                     {data ? (
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 font-mono text-sm text-gray-700 overflow-auto max-h-60">
+                        <div className="bg-background rounded-xl p-4 border border-secondary/10 font-mono text-sm text-text-main overflow-auto max-h-60">
                             <pre>{JSON.stringify(data, null, 2)}</pre>
                         </div>
                     ) : (
@@ -77,7 +77,7 @@ const Profile = () => {
                 </div>
 
                 {/* User Metadata Card */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-surface rounded-2xl shadow-sm border border-secondary/10 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">User Metadata</h3>
                     <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 font-mono text-sm text-green-400 overflow-auto max-h-60 custom-scrollbar">
                         <pre>{JSON.stringify(user, null, 2)}</pre>
