@@ -6,6 +6,8 @@ import { useAuth } from './context/AuthProvider';
 import Landing from './pages/Landing';
 import AdminDashboard from './pages/admin/Dashboard';
 import CitizenDashboard from './pages/citizen/Dashboard';
+import AdminIssues from './pages/admin/AdminIssues';
+import IssueDetails from './pages/admin/IssueDetails';
 import LogoutButton from './components/LogoutButton';
 
 // Protected Route Wrapper
@@ -34,9 +36,14 @@ function App() {
                                 {user && (
                                     <div className="flex items-center space-x-4">
                                         {role === 'admin' && (
-                                            <a href="/admin" className="text-primary hover:text-primary-hover font-medium">
-                                                Admin Dashboard
-                                            </a>
+                                            <>
+                                                <a href="/admin" className="text-primary hover:text-primary-hover font-medium">
+                                                    Admin Dashboard
+                                                </a>
+                                                <a href="/admin/issues" className="text-primary hover:text-primary-hover font-medium">
+                                                    Issues
+                                                </a>
+                                            </>
                                         )}
                                         <LogoutButton />
                                     </div>
@@ -63,6 +70,22 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     {role === 'admin' ? <AdminDashboard /> : <Navigate to="/dashboard" />}
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/admin/issues"
+                            element={
+                                <ProtectedRoute>
+                                    {role === 'admin' ? <AdminIssues /> : <Navigate to="/dashboard" />}
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/admin/issues/:id"
+                            element={
+                                <ProtectedRoute>
+                                    {role === 'admin' ? <IssueDetails /> : <Navigate to="/dashboard" />}
                                 </ProtectedRoute>
                             }
                         />
