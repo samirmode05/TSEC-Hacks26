@@ -71,9 +71,35 @@ const getDashboardStats = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+// Get single report by ID
+const getReportById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data, error } = await supabase
+            .from('reports')
+            .select(`
+                *,
+                profiles:user_id (
+                    email,
+                    full_name
+                )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ error: 'Report not found' });
+
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching report:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
 
 module.exports = {
     getAllReports,
     updateReportStatus,
-    getDashboardStats
+    getDashboardStats,
+    getReportById
 };
