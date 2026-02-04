@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 
 const AdminDashboard = () => {
+    const navigate = useNavigate();
     const [reports, setReports] = useState([]);
     const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0, inProgress: 0 });
     const [loading, setLoading] = useState(true);
@@ -79,6 +81,22 @@ const AdminDashboard = () => {
                     <div className="bg-surface p-6 rounded-xl shadow-sm border border-secondary/10">
                         <p className="text-sm text-text-muted font-medium">Resolved</p>
                         <p className="text-3xl font-bold text-success mt-1">{stats.resolved}</p>
+                    </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="bg-gradient-to-r from-primary to-primary-hover p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-bold mb-2">Emergency Route Finder</h3>
+                            <p className="text-sm opacity-90">Plan optimal routes for emergency services avoiding incidents</p>
+                        </div>
+                        <button
+                            onClick={() => navigate('/admin/emergency-routes')}
+                            className="bg-white text-primary px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md flex items-center gap-2"
+                        >
+                            🚑 Open Route Finder
+                        </button>
                     </div>
                 </div>
 

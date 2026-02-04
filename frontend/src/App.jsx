@@ -8,6 +8,7 @@ import CitizenDashboard from './pages/citizen/Dashboard';
 import AdminIssues from './pages/admin/AdminIssues';
 import IssueDetails from './pages/admin/IssueDetails';
 import ReportIssue from './pages/citizen/ReportIssue';
+import EmergencyRoutes from './pages/admin/EmergencyRoutes';
 import LogoutButton from './components/LogoutButton';
 
 // Protected Route Wrapper
@@ -86,6 +87,14 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     {role === 'admin' ? <IssueDetails /> : <Navigate to="/dashboard" />}
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/admin/emergency-routes"
+                            element={
+                                <ProtectedRoute>
+                                    {role === 'admin' ? <EmergencyRoutes /> : <Navigate to="/dashboard" />}
                                 </ProtectedRoute>
                             }
                         />
