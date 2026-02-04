@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, LayoutGrid, Map as MapIcon, Megaphone, Activity, Shield, Zap } from 'lucide-react';
 import HazardMap from '../../components/admin/HazardMap';
 import DashboardStats from '../../components/admin/DashboardStats';
 import { Toaster, toast } from 'react-hot-toast';
 import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const [reports, setReports] = useState([]);
     const [stats, setStats] = useState({
         active: 0,
         critical: 0,
         pending: 0,
-        resolvedToday: 0,
-        total: 0
+        resolvedToday: 0
     });
 
     const [hazards, setHazards] = useState([]);
@@ -24,13 +22,15 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         fetchData();
-        // Poll every 5 seconds for real-time updates
+        // Poll every 5 seconds for real-time updates (faster than 30s)
         const interval = setInterval(fetchData, 5000);
         return () => clearInterval(interval);
     }, []);
 
     const fetchData = async () => {
         try {
+            // Parallel fetch for valid Dashboard performance
+            // Also fetch latest announcements if needed, but for Admin Dash main view, we focus on stats/map
             const [reportsRes, statsRes] = await Promise.all([
                 api.get('/admin/reports'),
                 api.get('/admin/stats')
@@ -39,9 +39,8 @@ const AdminDashboard = () => {
             const reportsData = reportsRes.data || [];
             const statsData = statsRes.data || {};
 
-            setReports(reportsData);
-
             // Map Backend Reports to Hazard Map Format
+            // CRITICAL FIX: Filter out reports with missing location data to prevent Map crash
             const mappedHazards = reportsData
                 .filter(report => report.latitude && report.longitude)
                 .map(report => ({
@@ -56,162 +55,209 @@ const AdminDashboard = () => {
 
             setHazards(mappedHazards);
 
-            // Calculate Critical and Resolved Today
+            // Map Backend Stats to DashboardStats Format
+            // Backend sends: { total, pending, resolved, inProgress }
+            // DashboardStats expects: { active, critical, pending, resolvedToday }
+            // We'll calculate derived stats where needed
+
             const criticalCount = reportsData.filter(r => (r.risk_score || 0) >= 70 && r.status !== 'RESOLVED').length;
             const today = new Date().toISOString().split('T')[0];
-            const resolvedTodayCount = reportsData.filter(r => r.status === 'RESOLVED' && r.updated_at?.startsWith(today)).length;
+            const resolvedTodayCount = reportsData.filter(r => r.status === 'RESOLVED' && r.created_at.startsWith(today)).length;
 
             setStats({
                 active: (Number(statsData.inProgress) || 0) + (Number(statsData.pending) || 0),
                 critical: criticalCount,
                 pending: Number(statsData.pending) || 0,
-                resolvedToday: resolvedTodayCount,
-                total: reportsData.length
+                resolvedToday: resolvedTodayCount
             });
 
             setLoading(false);
+
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
             if (!loading) toast.error('Connection lost. Retrying...');
         }
     };
 
-    const handleStatusUpdate = async (reportId, newStatus) => {
-        try {
-            await api.patch(`/admin/reports/${reportId}`, { status: newStatus });
-            toast.success(`Report ${newStatus.toLowerCase()}`);
-            fetchData();
-        } catch (error) {
-            toast.error('Failed to update status');
-        }
-    };
-
     return (
-        <div className="min-h-screen bg-gray-900 text-white font-sans pb-12">
+        <div className="min-h-screen bg-gray-900 text-white font-sans">
             <Toaster position="top-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
 
-            {/* Top Navigation Bar */}
-            <header className="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-4 sm:px-6 shadow-md sticky top-0 z-50">
-                <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl">🏙️</span>
+            {/* Dashboard Actions Header - Integrated below global nav */}
+            <div className="bg-gray-800 border-b border-gray-700 py-4 px-6 mb-6">
+                <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                            <span className="text-xl">📊</span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold tracking-tight">
+                                Command <span className="text-blue-500">Center</span>
+                            </h1>
+                            <p className="text-xs text-gray-400">Live operational oversight & city management</p>
+                        </div>
                     </div>
-                    <h1 className="text-lg sm:text-xl font-bold tracking-tight truncate">
-                        City<span className="text-blue-500">Watch</span> <span className="hidden sm:inline text-gray-400 font-medium">Command Center</span>
-                    </h1>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <button
-                        onClick={() => setShowAnnouncementModal(true)}
-                        className="px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-sm font-bold rounded shadow-lg transition-transform hover:scale-105 flex items-center gap-2"
-                    >
-                        <Megaphone size={16} /> <span className="hidden sm:inline">Announcement</span>
-                    </button>
-                    <button
-                        onClick={() => { setLoading(true); fetchData(); }}
-                        className="p-2 bg-blue-600 hover:bg-blue-500 rounded transition-colors"
-                        title="Refresh Data"
-                    >
-                        <Activity size={16} />
-                    </button>
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gray-700 rounded-full text-xs">
-                        <span className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-500' : 'bg-green-500'} animate-pulse`}></span>
-                        <span className="text-gray-300">{loading ? 'Syncing...' : 'Live System'}</span>
-                    </div>
-                </div>
-            </header>
 
-            {/* Feature Access Bar */}
-            <div className="bg-gray-800/40 border-b border-gray-700 px-6 py-4">
-                <div className="max-w-[1600px] mx-auto flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
                         <button
-                            onClick={() => navigate('/admin/emergency-routes')}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 rounded-xl font-bold transition-all hover:scale-105"
+                            onClick={() => setShowAnnouncementModal(true)}
+                            className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-500 text-sm font-bold rounded shadow-lg transition-all hover:scale-105 flex items-center justify-center gap-2"
                         >
-                            🚑 Emergency Route Finder
+                            <span>📢</span> Post Announcement
                         </button>
                         <button
-                            onClick={() => navigate('/admin/optimization')}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded-xl font-bold transition-all hover:scale-105"
+                            onClick={() => { setLoading(true); fetchData(); }}
+                            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-sm font-semibold rounded transition-colors flex items-center gap-2"
                         >
-                            ⚡ Resource Optimization
+                            <span>⟳</span> Refresh
                         </button>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400 text-sm font-medium">
-                        <Shield size={16} className="text-blue-400" />
-                        <span>Infrastructure Integrity: 98.4%</span>
+                        <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-[10px] uppercase tracking-wider">
+                            <span className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-500' : 'bg-green-500'} animate-pulse`}></span>
+                            <span className="text-gray-400">{loading ? 'Syncing' : 'Live'}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Announcement Modal */}
+            {showAnnouncementModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <span>📢</span> Create Announcement
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Category</label>
+                                <select
+                                    value={announcementForm.category}
+                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, category: e.target.value })}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                >
+                                    <option value="General">General</option>
+                                    <option value="Critical">Critical (Red)</option>
+                                    <option value="Utility">Utility (Yellow)</option>
+                                    <option value="Event">Event</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
+                                <input
+                                    type="text"
+                                    value={announcementForm.title}
+                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                                    placeholder="e.g. Water Cut Notice"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white placeholder-gray-600 focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Message</label>
+                                <textarea
+                                    value={announcementForm.message}
+                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, message: e.target.value })}
+                                    placeholder="Enter the full announcement details..."
+                                    rows="4"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white placeholder-gray-600 focus:ring-2 focus:ring-purple-500 outline-none resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button
+                                onClick={() => setShowAnnouncementModal(false)}
+                                className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!announcementForm.title || !announcementForm.message) return toast.error('Please fill all fields');
+                                    try {
+                                        await api.post('/announcements', announcementForm);
+                                        toast.success('Announcement Posted!');
+                                        setShowAnnouncementModal(false);
+                                        setAnnouncementForm({ title: '', message: '', category: 'General' });
+                                    } catch (e) {
+                                        toast.error('Failed to post');
+                                    }
+                                }}
+                                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded shadow-lg transition-transform hover:scale-105"
+                            >
+                                Post Live
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <main className="p-6 max-w-[1600px] mx-auto space-y-6">
                 <DashboardStats stats={stats} />
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Map Column */}
-                    <div className="lg:col-span-2 flex flex-col bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl relative group h-[600px]">
-                        <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur px-3 py-1.5 rounded-lg text-[10px] font-mono text-blue-400 border border-blue-500/30 uppercase tracking-widest">
-                            Live Infrastructure Status
+                {/* Quick Actions / Emergency Finder */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 rounded-2xl shadow-xl border border-white/10 text-white relative overflow-hidden group">
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div>
+                            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                                🚑 Emergency Route Finder
+                            </h3>
+                            <p className="text-white/80 max-w-2xl">
+                                AI-powered route optimization for emergency services. Plan optimal paths by automatically avoiding current infrastructure incidents and congestion zones in real-time.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => navigate('/admin/emergency-routes')}
+                            className="whitespace-nowrap bg-white text-blue-600 px-8 py-4 rounded-xl font-bold hover:bg-neutral-100 transition-all shadow-2xl flex items-center gap-2 group-hover:scale-105"
+                        >
+                            Launch Route Engine <ArrowRight size={18} />
+                        </button>
+                    </div>
+                    {/* Background flare */}
+                    <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform"></div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-220px)] min-h-[500px]">
+                    {/* Left Column: Map */}
+                    <div className="lg:col-span-2 flex flex-col bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-2xl relative group">
+                        <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur px-3 py-1 rounded text-xs font-mono text-blue-400 border border-blue-500/30">
+                            LIVE HAZARD FEED
                         </div>
                         <div className="flex-1 w-full h-full">
                             <HazardMap hazards={hazards} />
                         </div>
                     </div>
 
-                    {/* Alerts Feed Column */}
-                    <div className="bg-gray-800 rounded-2xl border border-gray-700 flex flex-col shadow-xl overflow-hidden h-[600px]">
+                    {/* Right Column: Recent Alerts / Feed */}
+                    <div className="bg-gray-800 rounded-xl border border-gray-700 flex flex-col shadow-xl">
                         <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800/50">
-                            <h2 className="font-bold text-gray-200 flex items-center gap-2">
-                                <LayoutGrid size={18} className="text-blue-400" />
-                                Recent Incidents
-                            </h2>
-                            <span className="text-[10px] font-bold text-gray-400 px-2 py-1 bg-gray-700 rounded-md uppercase tracking-tighter">
-                                {reports.length} Total
-                            </span>
+                            <h2 className="font-bold text-gray-200">Recent Alerts</h2>
+                            <span className="text-xs text-gray-400">{hazards.length} Total</span>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                            {loading && reports.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-4">
-                                    <Activity className="animate-spin text-blue-500" size={32} />
-                                    <p className="text-sm font-medium">Synchronizing with field data...</p>
-                                </div>
+                        <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                            {loading && hazards.length === 0 ? (
+                                <div className="text-center text-gray-500 py-10">Loading feed...</div>
                             ) : (
-                                reports.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((report) => (
-                                    <div
-                                        key={report.id}
-                                        className="p-4 bg-gray-900/40 rounded-xl hover:bg-gray-700/40 transition-all border border-gray-700/50 hover:border-blue-500/50 group cursor-pointer"
-                                        onClick={() => navigate(`/admin/issues/${report.id}`)}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">
-                                                    {report.category || 'General'}
-                                                </span>
-                                                <h3 className="font-bold text-sm text-gray-100 group-hover:text-white leading-tight">
-                                                    {report.title || 'Incident Reported'}
-                                                </h3>
-                                            </div>
-                                            <span className={`text-[10px] px-2 py-1 rounded font-black uppercase tracking-tighter ${(report.risk_score || 0) >= 70 ? 'bg-red-500/20 text-red-500 border border-red-500/30' :
-                                                    (report.risk_score || 0) >= 40 ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' :
-                                                        'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                hazards.sort((a, b) => b.severity - a.severity).map((hazard) => (
+                                    <div key={hazard.id} className="p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors border-l-4 border-transparent hover:border-blue-500 group cursor-pointer">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="font-semibold text-sm text-gray-200 group-hover:text-white">{hazard.type}</h3>
+                                            <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${hazard.severity >= 70 ? 'bg-red-500/20 text-red-400' :
+                                                hazard.severity >= 50 ? 'bg-orange-500/20 text-orange-400' :
+                                                    'bg-blue-500/20 text-blue-400'
                                                 }`}>
-                                                {report.risk_score || 0}% Risk
+                                                {hazard.severity}% Risk
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-end mt-4 pt-3 border-t border-gray-700/30">
-                                            <div className="text-[10px] text-gray-500 font-medium">
-                                                <p>{new Date(report.created_at).toLocaleDateString()} • {new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                        <div className="flex justify-between items-end mt-2">
+                                            <div className="text-xs text-gray-500">
+                                                <p>{new Date(hazard.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                <p className="mt-0.5">{hazard.lat?.toFixed(4)}, {hazard.lng?.toFixed(4)}</p>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`w-2 h-2 rounded-full ${report.status === 'RESOLVED' ? 'bg-green-500' :
-                                                        report.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                                                            'bg-amber-500'
-                                                    }`}></span>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase">
-                                                    {report.status?.replace('_', ' ')}
-                                                </span>
-                                            </div>
+                                            <span className="text-xs px-2 py-1 bg-gray-900 rounded text-gray-400 border border-gray-600">
+                                                {hazard.status?.replace('_', ' ')}
+                                            </span>
                                         </div>
                                     </div>
                                 ))
@@ -220,85 +266,6 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </main>
-
-            {/* Announcement Modal */}
-            {showAnnouncementModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl scale-in-center">
-                        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Megaphone className="text-purple-400" size={24} />
-                            Create Announcement
-                        </h2>
-
-                        <div className="space-y-5">
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Severity Level</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {['General', 'Critical', 'Utility', 'Event'].map(cat => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setAnnouncementForm({ ...announcementForm, category: cat })}
-                                            className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all ${announcementForm.category === cat
-                                                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg'
-                                                    : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'
-                                                }`}
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Subject</label>
-                                <input
-                                    type="text"
-                                    value={announcementForm.title}
-                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                                    placeholder="Brief title..."
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white placeholder-gray-600 focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Details</label>
-                                <textarea
-                                    value={announcementForm.message}
-                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, message: e.target.value })}
-                                    placeholder="Enter announcement message..."
-                                    rows="4"
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white placeholder-gray-600 focus:ring-2 focus:ring-purple-500 outline-none resize-none transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 mt-8">
-                            <button
-                                onClick={() => setShowAnnouncementModal(false)}
-                                className="px-6 py-2 text-xs font-bold text-gray-400 hover:text-white transition-colors"
-                            >
-                                Discard
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    if (!announcementForm.title || !announcementForm.message) return toast.error('Incomplete data');
-                                    try {
-                                        await api.post('/announcements', announcementForm);
-                                        toast.success('Broadcast live!');
-                                        setShowAnnouncementModal(false);
-                                        setAnnouncementForm({ title: '', message: '', category: 'General' });
-                                    } catch (e) {
-                                        toast.error('Transmission failed');
-                                    }
-                                }}
-                                className="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl shadow-xl transition-all hover:scale-105 uppercase text-xs tracking-widest"
-                            >
-                                Dispatch
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

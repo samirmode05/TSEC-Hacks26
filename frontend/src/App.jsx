@@ -54,7 +54,7 @@ function App() {
                                     )}
                                     {role === 'citizen' && (
                                         <Link to="/dashboard" className="text-secondary hover:text-secondary-hover font-medium transition-colors">
-                                            My Dashboard
+                                            Dashboard
                                         </Link>
                                     )}
                                     <LogoutButton />
